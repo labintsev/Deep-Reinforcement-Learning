@@ -21,7 +21,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-
+EXPERIMENT_NAME = "-cartpole_hidden_state_64"  # or -cartpole_net_architecture_v1
 HIDDEN_SIZE = 64
 BATCH_SIZE = 16
 PERCENTILE = 70
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     net = Net(obs_size, HIDDEN_SIZE, n_actions)
     loss = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=net.parameters(), lr=0.01)
-    writer = SummaryWriter(comment="-cartpole")
+    writer = SummaryWriter(comment=EXPERIMENT_NAME)
     best_episodes = episodes_generator(env, net, BATCH_SIZE)
 
     for iter_no, batch in enumerate(best_episodes):
