@@ -1,4 +1,17 @@
 #!/usr/bin/env python3
+
+"""
+The Cross-Entropy Method
+1. Play N number of episodes using our current model and environment.
+2. Calculate the total reward for every episode and decide on a reward
+boundary. Usually, we use some percentile of all rewards, such as 50th
+or 70th.
+3. Throw away all episodes with a reward below the boundary.
+4. Train on the remaining "elite" episodes using observations as the input and
+issued actions as the desired output.
+5. Repeat from step 1 until we become satisfied with the result.
+"""
+
 import gymnasium as gym
 from collections import namedtuple
 import numpy as np
@@ -12,6 +25,9 @@ import torch.optim as optim
 HIDDEN_SIZE = 64
 BATCH_SIZE = 16
 PERCENTILE = 70
+
+Episode = namedtuple('Episode', field_names=['reward', 'steps'])
+EpisodeStep = namedtuple('EpisodeStep', field_names=['observation', 'action'])
 
 
 class Net(nn.Module):
@@ -27,19 +43,19 @@ class Net(nn.Module):
         return self.net(x)
 
 
-Episode = namedtuple('Episode', field_names=['reward', 'steps'])
-EpisodeStep = namedtuple('EpisodeStep', field_names=['observation', 'action'])
-
-
-def iterate_batches(env, net, batch_size):
+def episodes_generator(env, net, batch_size):
+    """Generate batch of episodes.
+    Every episode in next batch expects higher reward,
+    because Net learning best a|s probability distribution.
+    """
     batch = []
     episode_reward = 0.0
     episode_steps = []
     obs, info = env.reset()
-    sm = nn.Softmax(dim=1)
     while True:
-        obs_v = torch.FloatTensor([obs])
-        act_probs_v = sm(net(obs_v))
+        # Collect EpisodeSteps into Episode
+        obs_v = torch.FloatTensor(np.array(obs)).unsqueeze(0)
+        act_probs_v = net(obs_v).softmax(dim=1)
         act_probs = act_probs_v.data.numpy()[0]
         action = np.random.choice(len(act_probs), p=act_probs)
         next_obs, reward, is_done, _, _ = env.step(action)
@@ -47,6 +63,7 @@ def iterate_batches(env, net, batch_size):
         step = EpisodeStep(observation=obs, action=action)
         episode_steps.append(step)
         if is_done:
+            # Append Episode to batch and clear env state
             e = Episode(reward=episode_reward, steps=episode_steps)
             batch.append(e)
             episode_reward = 0.0
@@ -59,6 +76,9 @@ def iterate_batches(env, net, batch_size):
 
 
 def filter_batch(batch, percentile):
+    """Filter episodes in the batch.
+    Ignore episodes with reward < percentile.
+    Returns best state observations with corresponding actions. """
     rewards = list(map(lambda s: s.reward, batch))
     reward_bound = np.percentile(rewards, percentile)
     reward_mean = float(np.mean(rewards))
@@ -71,29 +91,27 @@ def filter_batch(batch, percentile):
         train_obs.extend(map(lambda step: step.observation, steps))
         train_act.extend(map(lambda step: step.action, steps))
 
-    train_obs_v = torch.FloatTensor(train_obs)
+    train_obs_v = torch.FloatTensor(np.array(train_obs))
     train_act_v = torch.LongTensor(train_act)
     return train_obs_v, train_act_v, reward_bound, reward_mean
 
 
 if __name__ == "__main__":
-    env = gym.make("CartPole-v0")
-    # env = gym.wrappers.Monitor(env, directory="mon", force=True)
+    env = gym.make("CartPole-v1")
     obs_size = env.observation_space.shape[0]
     n_actions = env.action_space.n
 
     net = Net(obs_size, HIDDEN_SIZE, n_actions)
-    objective = nn.CrossEntropyLoss()
+    loss = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=net.parameters(), lr=0.01)
     writer = SummaryWriter(comment="-cartpole")
+    best_episodes = episodes_generator(env, net, BATCH_SIZE)
 
-    for iter_no, batch in enumerate(iterate_batches(
-            env, net, BATCH_SIZE)):
-        obs_v, acts_v, reward_b, reward_m = \
-            filter_batch(batch, PERCENTILE)
+    for iter_no, batch in enumerate(best_episodes):
+        obs_v, acts_v, reward_b, reward_m = filter_batch(batch, PERCENTILE)
         optimizer.zero_grad()
         action_scores_v = net(obs_v)
-        loss_v = objective(action_scores_v, acts_v)
+        loss_v = loss(action_scores_v, acts_v)
         loss_v.backward()
         optimizer.step()
         print("%d: loss=%.3f, reward_mean=%.1f, rw_bound=%.1f" % (
