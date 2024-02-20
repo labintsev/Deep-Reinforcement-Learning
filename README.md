@@ -13,6 +13,7 @@ Forked from Deep-Reinforcement-Learning-Hands-On-Second-Edition, published by Pa
 Практические задания перед каждой лабораторной работой  4 * 2 = 8.  
 Итого 20+8+4+8 = 40.  
 Дополнительно посещаемость лекций 0,5 * 8 = 4 балла.  
+Текущие баллы [здесь](docs/scores.csv)  
 
 ## Начало работы 
 
