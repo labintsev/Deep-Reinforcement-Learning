@@ -1,33 +1,56 @@
 #!/usr/bin/env python3
-import gym
+"""
+The value iteration method.
+
+r(s, a) - reward of action from given state,
+V(s) - value (or total expected reward) of the state,
+Q(s, a) - value of the action, total reward we can get by executing action 'a' in state 's'.
+
+1. Initialize the values of all states, V_i, to some initial value (usually zero).
+2. For every state, s, in the MDP, perform the Bellman update V_s.
+3. Repeat step 2 for some large number of steps or until changes become too small.
+"""
+
+import gymnasium as gym
 import collections
 from tensorboardX import SummaryWriter
 
-ENV_NAME = "FrozenLake-v0"
-#ENV_NAME = "FrozenLake8x8-v0"      # uncomment for larger version
+ENV_NAME = "FrozenLake-v1"
 GAMMA = 0.9
 TEST_EPISODES = 20
 
 
 class Agent:
+    """
+    Agent contain functions that using in the training loop and keep tables:
+    self.rewards - Reward table: A dictionary with the composite key "source state" + "action" + "target state". \
+The value is obtained from the immediate reward.
+    self.transits - Transitions table: A dictionary keeping counters of the experienced transitions. \
+The key is the composite "state" + "action", and the value is another dictionary (counter) \
+that maps the target state into a count of times that we have seen it.
+    self.values - Value table: A dictionary that maps a state into the calculated value of this state.
+    """
     def __init__(self):
         self.env = gym.make(ENV_NAME)
-        self.state = self.env.reset()
+        self.state, _ = self.env.reset()
         self.rewards = collections.defaultdict(float)
-        self.transits = collections.defaultdict(
-            collections.Counter)
+        self.transits = collections.defaultdict(collections.Counter)
         self.values = collections.defaultdict(float)
 
     def play_n_random_steps(self, count):
-        for _ in range(count):
+        """ Gather random experience from the environment and update the reward and transition tables."""
+        for i in range(count):
             action = self.env.action_space.sample()
-            new_state, reward, is_done, _ = self.env.step(action)
+            new_state, reward, is_done, _, _ = self.env.step(action)
             self.rewards[(self.state, action, new_state)] = reward
             self.transits[(self.state, action)][new_state] += 1
-            self.state = self.env.reset() \
-                if is_done else new_state
+            if is_done:
+                self.state, _ = self.env.reset()
+            else:
+                self.state = new_state
 
-    def calc_action_value(self, state, action):
+    def calc_action_value(self, state, action) -> float:
+        """ Calculates the value of the action from the state using transition, reward, and values tables. """
         target_counts = self.transits[(state, action)]
         total = sum(target_counts.values())
         action_value = 0.0
@@ -37,7 +60,8 @@ class Agent:
             action_value += (count / total) * val
         return action_value
 
-    def select_action(self, state):
+    def select_action(self, state) -> int:
+        """ Make a decision about the best action to take from the given state."""
         best_action, best_value = None, None
         for action in range(self.env.action_space.n):
             action_value = self.calc_action_value(state, action)
@@ -47,11 +71,12 @@ class Agent:
         return best_action
 
     def play_episode(self, env):
+        """Take the best action and plays one full episode using the provided environment."""
         total_reward = 0.0
-        state = env.reset()
+        state, info = env.reset()
         while True:
             action = self.select_action(state)
-            new_state, reward, is_done, _ = env.step(action)
+            new_state, reward, is_done, _, _ = env.step(action)
             self.rewards[(state, action, new_state)] = reward
             self.transits[(state, action)][new_state] += 1
             total_reward += reward
@@ -61,6 +86,12 @@ class Agent:
         return total_reward
 
     def value_iteration(self):
+        """
+        1. Loop over all states in the environment.
+        2. For every state calculate the values for the states reachable from it,
+         obtaining candidates for the value of the state.
+        3. Update the value of current state with the maximum value of the action available from the state.
+         """
         for state in range(self.env.observation_space.n):
             state_values = [
                 self.calc_action_value(state, action)
