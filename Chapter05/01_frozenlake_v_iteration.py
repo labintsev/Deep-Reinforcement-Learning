@@ -16,8 +16,10 @@ import collections
 from tensorboardX import SummaryWriter
 
 ENV_NAME = "FrozenLake-v1"
+# ENV_NAME = "FrozenLake8x8-v1"      # uncomment for larger version
 GAMMA = 0.9
 TEST_EPISODES = 20
+EXPERIMENT_NAME = "-v-iteration"  # or -v-gamma-0.8
 
 
 class Agent:
@@ -41,10 +43,10 @@ that maps the target state into a count of times that we have seen it.
         """ Gather random experience from the environment and update the reward and transition tables."""
         for i in range(count):
             action = self.env.action_space.sample()
-            new_state, reward, is_done, _, _ = self.env.step(action)
+            new_state, reward, terminated, truncated, _ = self.env.step(action)
             self.rewards[(self.state, action, new_state)] = reward
             self.transits[(self.state, action)][new_state] += 1
-            if is_done:
+            if terminated or truncated:
                 self.state, _ = self.env.reset()
             else:
                 self.state = new_state
@@ -65,7 +67,7 @@ that maps the target state into a count of times that we have seen it.
         best_action, best_value = None, None
         for action in range(self.env.action_space.n):
             action_value = self.calc_action_value(state, action)
-            if best_value is None or best_value < action_value:
+            if best_value is None or action_value > best_value:
                 best_value = action_value
                 best_action = action
         return best_action
@@ -76,11 +78,11 @@ that maps the target state into a count of times that we have seen it.
         state, info = env.reset()
         while True:
             action = self.select_action(state)
-            new_state, reward, is_done, _, _ = env.step(action)
+            new_state, reward, terminated, truncated, _ = env.step(action)
             self.rewards[(state, action, new_state)] = reward
             self.transits[(state, action)][new_state] += 1
             total_reward += reward
-            if is_done:
+            if terminated or truncated:
                 break
             state = new_state
         return total_reward
@@ -103,7 +105,7 @@ that maps the target state into a count of times that we have seen it.
 if __name__ == "__main__":
     test_env = gym.make(ENV_NAME)
     agent = Agent()
-    writer = SummaryWriter(comment="-v-iteration")
+    writer = SummaryWriter(comment=EXPERIMENT_NAME)
 
     iter_no = 0
     best_reward = 0.0

@@ -7,6 +7,7 @@ ENV_NAME = "FrozenLake-v1"
 # ENV_NAME = "FrozenLake8x8-v1"      # uncomment for larger version
 GAMMA = 0.9
 TEST_EPISODES = 20
+EXPERIMENT_NAME = "-q-iteration"  # or -q-gamma-0.8
 
 
 class Agent:
@@ -42,11 +43,11 @@ class Agent:
         state, _ = env.reset()
         while True:
             action = self.select_action(state)
-            new_state, reward, is_done, _, _ = env.step(action)
+            new_state, reward, terminated, truncated, _ = env.step(action)
             self.rewards[(state, action, new_state)] = reward
             self.transits[(state, action)][new_state] += 1
             total_reward += reward
-            if is_done:
+            if truncated or terminated:
                 break
             state = new_state
         return total_reward
