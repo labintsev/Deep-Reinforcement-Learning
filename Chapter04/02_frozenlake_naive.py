@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+Cross entropy method in frozen lake environment
+"""
+
 import gymnasium as gym
 from collections import namedtuple
 import numpy as np
