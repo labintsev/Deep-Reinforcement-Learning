@@ -13,8 +13,10 @@ import torch.optim as optim
 
 from tensorboardX import SummaryWriter
 
+import gymnasium as gym
 
-DEFAULT_ENV_NAME = "PongNoFrameskip-v4"
+
+DEFAULT_ENV_NAME = "ALE/Pong-v5"
 MEAN_REWARD_BOUND = 19
 
 GAMMA = 0.99
@@ -62,7 +64,7 @@ class Agent:
         self._reset()
 
     def _reset(self):
-        self.state = env.reset()
+        self.state, _ = self.env.reset()
         self.total_reward = 0.0
 
     @torch.no_grad()
@@ -70,7 +72,7 @@ class Agent:
         done_reward = None
 
         if np.random.random() < epsilon:
-            action = env.action_space.sample()
+            action = self.env.action_space.sample()
         else:
             state_a = np.array([self.state], copy=False)
             state_v = torch.tensor(state_a).to(device)
@@ -79,9 +81,9 @@ class Agent:
             action = int(act_v.item())
 
         # do step in the environment
-        new_state, reward, is_done, _ = self.env.step(action)
+        new_state, reward, terminated, truncated, _ = self.env.step(action)
         self.total_reward += reward
-
+        is_done = terminated or truncated
         exp = Experience(self.state, action, reward,
                          is_done, new_state)
         self.exp_buffer.append(exp)
@@ -117,6 +119,7 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
 
 
 if __name__ == "__main__":
+    print(gym.envs.registration.registry.keys())
     parser = argparse.ArgumentParser()
     parser.add_argument("--cuda", default=False,
                         action="store_true", help="Enable cuda")
