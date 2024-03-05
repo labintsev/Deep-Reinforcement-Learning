@@ -1,8 +1,9 @@
 import cv2
-import gym
-import gym.spaces
+import gymnasium as gym
 import numpy as np
 import collections
+
+SEED = 42
 
 
 class FireResetEnv(gym.Wrapper):
@@ -15,14 +16,14 @@ class FireResetEnv(gym.Wrapper):
     def step(self, action):
         return self.env.step(action)
 
-    def reset(self):
-        self.env.reset()
-        obs, _, done, _ = self.env.step(1)
-        if done:
-            self.env.reset()
-        obs, _, done, _ = self.env.step(2)
-        if done:
-            self.env.reset()
+    def reset(self, **kwargs):
+        self.env.reset(**kwargs)
+        obs, _, terminated, truncated, _ = self.env.step(1)
+        if terminated or truncated:
+            self.env.reset(**kwargs)
+        obs, _, terminated, truncated, _ = self.env.step(2)
+        if terminated or truncated:
+            self.env.reset(**kwargs)
         return obs
 
 
@@ -36,22 +37,22 @@ class MaxAndSkipEnv(gym.Wrapper):
 
     def step(self, action):
         total_reward = 0.0
-        done = None
+        terminated, truncated, info = None, None, None
         for _ in range(self._skip):
-            obs, reward, done, info = self.env.step(action)
+            obs, reward, terminated, truncated, info = self.env.step(action)
             self._obs_buffer.append(obs)
             total_reward += reward
-            if done:
+            if terminated or truncated:
                 break
         max_frame = np.max(np.stack(self._obs_buffer), axis=0)
-        return max_frame, total_reward, done, info
+        return max_frame, total_reward, terminated, truncated, info
 
-    def reset(self):
+    def reset(self, **kwargs):
         """Clear past frame buffer and init. to first obs. from inner env."""
         self._obs_buffer.clear()
-        obs = self.env.reset()
+        obs, info = self.env.reset(**kwargs)
         self._obs_buffer.append(obs)
-        return obs
+        return obs, info
 
 
 class ProcessFrame84(gym.ObservationWrapper):
@@ -108,10 +109,10 @@ class BufferWrapper(gym.ObservationWrapper):
             old_space.low.repeat(n_steps, axis=0),
             old_space.high.repeat(n_steps, axis=0), dtype=dtype)
 
-    def reset(self):
-        self.buffer = np.zeros_like(
-            self.observation_space.low, dtype=self.dtype)
-        return self.observation(self.env.reset())
+    def reset(self, **kwargs):
+        self.buffer = np.zeros_like(self.observation_space.low, dtype=self.dtype)
+        obs, info = self.env.reset(**kwargs)
+        return self.observation(obs), info
 
     def observation(self, observation):
         self.buffer[:-1] = self.buffer[1:]
@@ -122,7 +123,7 @@ class BufferWrapper(gym.ObservationWrapper):
 def make_env(env_name):
     env = gym.make(env_name)
     env = MaxAndSkipEnv(env)
-    env = FireResetEnv(env)
+#    env = FireResetEnv(env)
     env = ProcessFrame84(env)
     env = ImageToPyTorch(env)
     env = BufferWrapper(env, 4)
