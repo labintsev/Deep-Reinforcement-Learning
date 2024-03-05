@@ -16,7 +16,7 @@ class Agent:
         self.state, _ = self.env.reset()
         self.rewards = collections.defaultdict(float)
         self.transits = collections.defaultdict(collections.Counter)
-        self.values = collections.defaultdict(float)
+        self.Q_values = collections.defaultdict(float)
 
     def play_n_random_steps(self, count):
         for _ in range(count):
@@ -32,7 +32,7 @@ class Agent:
     def select_action(self, state):
         best_action, best_value = None, None
         for action in range(self.env.action_space.n):
-            action_value = self.values[(state, action)]
+            action_value = self.Q_values[(state, action)]
             if best_value is None or best_value < action_value:
                 best_value = action_value
                 best_action = action
@@ -63,9 +63,9 @@ class Agent:
                     reward = self.rewards[key]
                     best_action = self.select_action(tgt_state)
                     val = reward + GAMMA * \
-                          self.values[(tgt_state, best_action)]
+                          self.Q_values[(tgt_state, best_action)]
                     action_value += (count / total) * val
-                self.values[(state, action)] = action_value
+                self.Q_values[(state, action)] = action_value
 
 
 if __name__ == "__main__":
