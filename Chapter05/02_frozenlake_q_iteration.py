@@ -62,8 +62,7 @@ class Agent:
                     key = (state, action, tgt_state)
                     reward = self.rewards[key]
                     best_action = self.select_action(tgt_state)
-                    val = reward + GAMMA * \
-                          self.Q_values[(tgt_state, best_action)]
+                    val = reward + GAMMA * self.Q_values[(tgt_state, best_action)]
                     action_value += (count / total) * val
                 self.Q_values[(state, action)] = action_value
 
