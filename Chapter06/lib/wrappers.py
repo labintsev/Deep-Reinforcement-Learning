@@ -3,8 +3,6 @@ import gymnasium as gym
 import numpy as np
 import collections
 
-SEED = 42
-
 
 class FireResetEnv(gym.Wrapper):
     def __init__(self, env=None):
@@ -21,10 +19,10 @@ class FireResetEnv(gym.Wrapper):
         obs, _, terminated, truncated, _ = self.env.step(1)
         if terminated or truncated:
             self.env.reset(**kwargs)
-        obs, _, terminated, truncated, _ = self.env.step(2)
+        obs, _, terminated, truncated, info = self.env.step(2)
         if terminated or truncated:
             self.env.reset(**kwargs)
-        return obs
+        return obs, info
 
 
 class MaxAndSkipEnv(gym.Wrapper):
@@ -120,10 +118,10 @@ class BufferWrapper(gym.ObservationWrapper):
         return self.buffer
 
 
-def make_env(env_name):
-    env = gym.make(env_name)
+def make_env(env_name, **kwargs):
+    env = gym.make(env_name, **kwargs)
     env = MaxAndSkipEnv(env)
-#    env = FireResetEnv(env)
+    env = FireResetEnv(env)
     env = ProcessFrame84(env)
     env = ImageToPyTorch(env)
     env = BufferWrapper(env, 4)

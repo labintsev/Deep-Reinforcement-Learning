@@ -13,9 +13,6 @@ import torch.optim as optim
 
 from tensorboardX import SummaryWriter
 
-import gymnasium as gym
-
-
 DEFAULT_ENV_NAME = "ALE/Pong-v5"
 MEAN_REWARD_BOUND = 19
 
@@ -24,9 +21,9 @@ BATCH_SIZE = 32
 REPLAY_SIZE = 10000
 LEARNING_RATE = 1e-4
 SYNC_TARGET_FRAMES = 1000
-REPLAY_START_SIZE = 10000
+REPLAY_START_SIZE = 10_000
 
-EPSILON_DECAY_LAST_FRAME = 150000
+EPSILON_DECAY_LAST_FRAME = 150_000
 EPSILON_START = 1.0
 EPSILON_FINAL = 0.01
 
@@ -83,7 +80,7 @@ class Agent:
         # do step in the environment
         new_state, reward, terminated, truncated, _ = self.env.step(action)
         self.total_reward += reward
-        is_done = terminated or truncated
+        is_done = terminated
         exp = Experience(self.state, action, reward,
                          is_done, new_state)
         self.exp_buffer.append(exp)
@@ -119,7 +116,6 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
 
 
 if __name__ == "__main__":
-    print(gym.envs.registration.registry.keys())
     parser = argparse.ArgumentParser()
     parser.add_argument("--cuda", default=False,
                         action="store_true", help="Enable cuda")
@@ -129,7 +125,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     device = torch.device("cuda" if args.cuda else "cpu")
 
-    env = wrappers.make_env(args.env)
+    env = wrappers.make_env(args.env, repeat_action_probability=0.0)
 
     net = dqn_model.DQN(env.observation_space.shape,
                         env.action_space.n).to(device)
@@ -171,8 +167,8 @@ if __name__ == "__main__":
             writer.add_scalar("reward_100", m_reward, frame_idx)
             writer.add_scalar("reward", reward, frame_idx)
             if best_m_reward is None or best_m_reward < m_reward:
-                torch.save(net.state_dict(), args.env +
-                           "-best_%.0f.dat" % m_reward)
+                checkpoint_name = args.env.split('/')[-1] + f"-best_{m_reward:.0f}.dat"
+                torch.save(net.state_dict(), checkpoint_name)
                 if best_m_reward is not None:
                     print("Best reward updated %.3f -> %.3f" % (
                         best_m_reward, m_reward))

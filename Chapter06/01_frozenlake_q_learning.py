@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+"""
+Q-learning - modification of the value iteration method:
+1. Start with an empty table, mapping states to values of actions.
+2. By interacting with the environment, obtain the tuple (s, a, r, s').
+3. Update the Q(s, a) value using the Bellman approximation:
+Q(s, a) ← r + γ max Q(s′ , a′)
+4. Repeat from step 2.
+"""
+
+
 import gymnasium as gym
 import collections
 from tensorboardX import SummaryWriter
