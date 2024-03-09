@@ -9,8 +9,8 @@ Q(s, a) ← r + γ max Q(s′ , a′)
 """
 
 
-import gymnasium as gym
 import collections
+import gymnasium as gym
 from tensorboardX import SummaryWriter
 
 ENV_NAME = "FrozenLake-v1"
@@ -75,16 +75,15 @@ if __name__ == "__main__":
         s, a, r, next_s = agent.sample_env()
         agent.value_update(s, a, r, next_s)
 
-        reward = 0.0
+        mean_reward = 0.0
         for _ in range(TEST_EPISODES):
-            reward += agent.play_episode(test_env)
-        reward /= TEST_EPISODES
-        writer.add_scalar("reward", reward, iter_no)
-        if reward > best_reward:
-            print("Best reward updated %.3f -> %.3f" % (
-                best_reward, reward))
-            best_reward = reward
-        if reward > 0.80:
-            print("Solved in %d iterations!" % iter_no)
+            mean_reward += agent.play_episode(test_env)
+        mean_reward /= TEST_EPISODES
+        writer.add_scalar("reward", mean_reward, iter_no)
+        if mean_reward > best_reward:
+            print(f"Best reward updated {best_reward:.3f} -> {mean_reward:.3f}")
+            best_reward = mean_reward
+        if mean_reward > 0.80:
+            print(f"Solved in {iter_no:d} iterations!")
             break
     writer.close()
