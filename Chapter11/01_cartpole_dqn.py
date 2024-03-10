@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-import gym
-import ptan
+import gymnasium as gym
 import numpy as np
 from tensorboardX import SummaryWriter
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import lib
 
 GAMMA = 0.99
 LEARNING_RATE = 0.01
-BATCH_SIZE = 8
+BATCH_SIZE = 64
 
 EPSILON_START = 1.0
 EPSILON_STOP = 0.02
@@ -43,16 +43,16 @@ def calc_target(net, local_reward, next_state):
 
 
 if __name__ == "__main__":
-    env = gym.make("CartPole-v0")
+    env = gym.make("CartPole-v1")
     writer = SummaryWriter(comment="-cartpole-dqn")
 
     net = DQN(env.observation_space.shape[0], env.action_space.n)
     print(net)
 
-    selector = ptan.actions.EpsilonGreedyActionSelector(epsilon=EPSILON_START)
-    agent = ptan.agent.DQNAgent(net, selector, preprocessor=ptan.agent.float32_preprocessor)
-    exp_source = ptan.experience.ExperienceSourceFirstLast(env, agent, gamma=GAMMA)
-    replay_buffer = ptan.experience.ExperienceReplayBuffer(exp_source, REPLAY_BUFFER)
+    selector = lib.actions.EpsilonGreedyActionSelector(epsilon=EPSILON_START)
+    agent = lib.agent.DQNAgent(net, selector, preprocessor=lib.agent.float32_preprocessor)
+    exp_source = lib.experience.ExperienceSourceFirstLast(env, agent, gamma=GAMMA)
+    replay_buffer = lib.experience.ExperienceReplayBuffer(exp_source, REPLAY_BUFFER)
 
     optimizer = optim.Adam(net.parameters(), lr=LEARNING_RATE)
     mse_loss = nn.MSELoss()

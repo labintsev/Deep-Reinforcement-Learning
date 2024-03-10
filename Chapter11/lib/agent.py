@@ -80,3 +80,31 @@ class PolicyAgent(BaseAgent):
         probs = probs_v.data.cpu().numpy()
         actions = self.action_selector(probs)
         return np.array(actions), agent_states
+
+
+class DQNAgent(BaseAgent):
+    """
+    DQNAgent is a memoryless DQN agent which calculates Q values
+    from the observations and  converts them into the actions using action_selector
+    """
+    def __init__(self, dqn_model, action_selector, device="cpu", preprocessor=default_states_preprocessor):
+        self.dqn_model = dqn_model
+        self.action_selector = action_selector
+        self.preprocessor = preprocessor
+        self.device = device
+
+    @torch.no_grad()
+    def __call__(self, states, agent_states=None):
+        if agent_states is None:
+            agent_states = [None] * len(states)
+        if self.preprocessor is not None:
+            states = self.preprocessor(states)
+            if torch.is_tensor(states):
+                states = states.to(self.device)
+        q_v = self.dqn_model(states)
+        q = q_v.data.cpu().numpy()
+        actions = self.action_selector(q)
+        return actions, agent_states
+
+
+
