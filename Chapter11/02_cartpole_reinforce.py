@@ -1,6 +1,15 @@
-#!/usr/bin/env python3
-import gym
-import ptan
+""" REINFORCE method
+1. Initialize the network with random weights
+2. Play N full episodes, saving (s, a, r, s`)
+3. For every step t, of every episode k, calculate Q(k,t)
+4. Calculate loss function for all transitions
+5. Perform an SGD update of weights, minimizing the loss
+6. Repeat from step 2 until converged
+"""
+
+import gymnasium as gym
+import lib
+
 import numpy as np
 from tensorboardX import SummaryWriter
 
@@ -45,9 +54,8 @@ if __name__ == "__main__":
     net = PGN(env.observation_space.shape[0], env.action_space.n)
     print(net)
 
-    agent = ptan.agent.PolicyAgent(net, preprocessor=ptan.agent.float32_preprocessor,
-                                   apply_softmax=True)
-    exp_source = ptan.experience.ExperienceSourceFirstLast(env, agent, gamma=GAMMA)
+    agent = lib.agent.PolicyAgent(net, apply_softmax=True)
+    exp_source = lib.experience.ExperienceSourceFirstLast(env, agent, gamma=GAMMA)
 
     optimizer = optim.Adam(net.parameters(), lr=LEARNING_RATE)
 
