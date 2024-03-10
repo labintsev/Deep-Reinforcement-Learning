@@ -7,3 +7,4 @@ tensorboard
 opencv-python
 torchvision
 pytorch-ignite
+pylint
