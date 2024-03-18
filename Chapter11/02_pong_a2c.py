@@ -1,4 +1,15 @@
-#!/usr/bin/env python3
+""" Actor-Critic method
+1. Initialize the network with random weights
+2. Play N steps in the environment using the current policy, П(𝜃), saving (s, a, r)
+3. R = 0 if the end of the episode is reached or R = V(s)
+4. For every step i = t-1...0 update R_i, policy and value gradients
+5. Update the network parameters using the accumulated gradients, moving
+in the direction of the policy gradients, 𝜕𝜃𝜋, and in the opposite direction of
+the value gradients, 𝜕𝜃𝑣
+6. Repeat from step 2 until convergence is reached
+
+"""
+
 import argparse
 
 import gymnasium
