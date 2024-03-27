@@ -1,4 +1,14 @@
-#!/usr/bin/env python3
+"""
+The value of actions iteration method.
+
+r(s, a) - reward of action from given state,
+Q(s, a) - value of the action, total reward we can get by executing action 'a' in state 's'.
+
+1. Initialize the values of all states and actions, Q_i, to some initial value (usually zero).
+2. For every state, s, in the MDP, perform the Bellman update Q_s.
+3. Repeat step 2 for some large number of steps until test reward > desired level.
+"""
+
 import gymnasium as gym
 import collections
 from tensorboardX import SummaryWriter
