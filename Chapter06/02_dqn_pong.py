@@ -9,7 +9,7 @@ Q(s, a) ← r + γ max Q(s′ , a′)
 5. Update DQN(s,) using gradient descent (SGD) algorithm,
 by minimizing the loss with respect to the model parameters.
 6. Every N steps copy weights from DQN to target network Q`.
-6. Repeat from step 2 until converged.
+7. Repeat from step 2 until converged.
 """
 import argparse
 import time
